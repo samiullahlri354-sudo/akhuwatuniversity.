@@ -1,0 +1,346 @@
+<!--
+Smart single-file website for Akhuwat University (Kasur)
+Features included:
+ - Pages: Home, Admission Form, About Us, Contact Us (single-page app)
+ - Hero image on Home (replace IMAGE_URL constant below with a direct image URL you choose from Google or your own hosted image)
+ - Modern blue & white design + dark-mode toggle
+ - Smart, validated admission form with fields: Full Name, CNIC/Roll No, Program, Email, Phone, Address, Notes
+ - Local save (localStorage), Draft save, Export CSV
+ - Optional: set SERVER_ENDPOINT to POST form data to your backend or set GOOGLE_SCRIPT_ENDPOINT to send entries to a Google Sheet (instructions in comments)
+ - Responsive layout and small UX improvements
+
+IMPORTANT: If you use an image from Google, ensure you have the right to use it (copyright). Better: download the university image you own the rights to and host it from your server or GitHub repo, then replace IMAGE_URL.
+-->
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Akhuwat University — Smart Admissions</title>
+  <style>
+    :root{--accent:#0b6fbd;--accent-2:#146fa8;--muted:#6b7280;--bg:#f6fbff}
+    *{box-sizing:border-box}
+    body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;margin:0;background:var(--bg);color:#0b2540}
+    header{background:white;position:sticky;top:0;z-index:40;box-shadow:0 6px 20px rgba(13,42,70,0.06)}
+    .container{max-width:1100px;margin:0 auto;padding:18px}
+    nav{display:flex;align-items:center;gap:18px}
+    .brand{display:flex;gap:12px;align-items:center}
+    .brand img{height:44px;width:44px;border-radius:8px;object-fit:cover}
+    .brand h1{font-size:18px;margin:0}
+    .navlinks{margin-left:auto;display:flex;gap:10px}
+    .navlinks a{padding:8px 12px;border-radius:8px;text-decoration:none;color:inherit}
+    .navlinks a.active{background:linear-gradient(90deg,var(--accent),var(--accent-2));color:white}
+    .btn{background:var(--accent);color:white;padding:8px 12px;border-radius:10px;border:0;font-weight:700;cursor:pointer}
+    .btn.ghost{background:transparent;color:var(--accent);border:1px solid rgba(11,111,189,0.12)}
+
+    /* Hero */
+    .hero{display:grid;grid-template-columns:1fr 420px;gap:20px;align-items:center;padding:36px 0}
+    .hero-card{background:white;padding:28px;border-radius:14px;box-shadow:0 10px 30px rgba(9,27,48,0.06)}
+    .hero h2{margin:0 0 8px;font-size:28px}
+    .hero p{color:var(--muted);margin:0 0 12px}
+    .hero-visual{height:320px;border-radius:14px;background-size:cover;background-position:center}
+
+    /* Layout sections */
+    main{padding:18px 0}
+    .grid-3{display:grid;grid-template-columns:1fr 360px;gap:18px}
+    @media (max-width:980px){.hero{grid-template-columns:1fr}.grid-3{grid-template-columns:1fr} .navlinks{display:none}}
+
+    /* Form */
+    form{display:flex;flex-direction:column;gap:10px}
+    label{font-weight:600;font-size:14px}
+    input[type=text],input[type=email],select,textarea{padding:10px;border-radius:8px;border:1px solid #e6f0fb;background:#fbfeff}
+    .row{display:flex;gap:10px}
+    .row .col{flex:1}
+    .muted{color:var(--muted);font-size:14px}
+    .card{background:white;padding:14px;border-radius:12px;box-shadow:0 6px 18px rgba(12,36,62,0.04)}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:8px;border-bottom:1px solid #f3f7fb}
+
+    footer{margin-top:18px;padding:28px;text-align:center;color:var(--muted)}
+
+    /* small helpers */
+    .flex{display:flex;align-items:center;gap:12px}
+    .small{font-size:13px}
+
+    /* Dark mode */
+    .dark{--accent:#7fb3ff;--accent-2:#3b82f6;--muted:#aab3c4;--bg:#071428;color:#e6eef8}
+    .dark header{background:#051428}
+    .dark .hero-card,.dark .card{background:#052033}
+  </style>
+</head>
+<body id="page-root">
+  <header>
+    <div class="container">
+      <nav>
+        <div class="brand">
+          <img id="brand-img" src="" alt="Akhuwat logo" />
+          <div>
+            <h1>Akhuwat University — Kasur</h1>
+            <div class="muted small">Admissions • Call: 03365086000</div>
+          </div>
+        </div>
+
+        <div class="navlinks" id="nav-links">
+          <a href="#home" data-page="home" class="active">Home</a>
+          <a href="#admission" data-page="admission">Admission Form</a>
+          <a href="#about" data-page="about">About Us</a>
+          <a href="#contact" data-page="contact">Contact Us</a>
+        </div>
+
+        <div style="margin-left:12px;display:flex;gap:8px;align-items:center">
+          <button class="btn ghost" id="theme-toggle">Dark</button>
+          <button class="btn" onclick="navigate('admission')">Apply Now</button>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- HOME -->
+    <section id="page-home" class="page">
+      <div class="hero">
+        <div class="hero-card">
+          <h2>Apply to Akhuwat University — Kasur</h2>
+          <p class="muted">Flexible programs in Hospitality, Arts, Tourism and more. Submit your application online — quick and secure.</p>
+          <div class="flex">
+            <button class="btn" onclick="navigate('admission')">Start Application</button>
+            <button class="btn ghost" onclick="exportCSV()">Export Applications</button>
+          </div>
+
+          <div style="margin-top:18px">
+            <h4>Why study with us?</h4>
+            <ul class="muted">
+              <li>Practical training in hospitality & tourism</li>
+              <li>Experienced faculty and industry linkages</li>
+              <li>Flexible study options — on-campus & online</li>
+            </ul>
+          </div>
+        </div>
+
+        <div>
+          <div id="hero-img" class="hero-visual"></div>
+        </div>
+      </div>
+
+      <div style="margin-top:20px" class="grid-3">
+        <div>
+          <div class="card">
+            <h3>Latest Admissions</h3>
+            <p class="muted">Admissions for Fall 2025 are open. Fill the admission form and submit your documents.</p>
+          </div>
+
+          <div class="card" style="margin-top:12px">
+            <h4>Saved Applications</h4>
+            <div id="saved-list">No saved entries yet.</div>
+          </div>
+        </div>
+
+        <aside>
+          <div class="card">
+            <h4>Contact</h4>
+            <p class="muted">Akhuwat University — Kasur<br>Phone: 03365086000<br>Email: admissions@akhuwat.edu.pk</p>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- ADMISSION -->
+    <section id="page-admission" class="page" style="display:none">
+      <div class="card">
+        <h2>Admission Form</h2>
+        <p class="muted">Fill the form and submit. Fields marked * are required.</p>
+
+        <form id="admission-form">
+          <div class="row">
+            <div class="col">
+              <label>Full Name *</label>
+              <input id="name" required />
+            </div>
+            <div class="col">
+              <label>CNIC / Roll No *</label>
+              <input id="cnic" required placeholder="xxxxx-xxxxxxx-x" />
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col">
+              <label>Program *</label>
+              <select id="program" required>
+                <option value="">-- select program --</option>
+                <option>BS Hospitality</option>
+                <option>AD Arts</option>
+                <option>BA General (AD)</option>
+                <option>BS Tourism</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <div class="col">
+              <label>Email</label>
+              <input id="email" type="email" />
+            </div>
+          </div>
+
+          <label>Phone *</label>
+          <input id="phone" placeholder="03xxxxxxxxx" required />
+
+          <label>Address</label>
+          <input id="address" />
+
+          <label>Notes / Message</label>
+          <textarea id="notes" rows="3"></textarea>
+
+          <div class="row" style="margin-top:8px">
+            <button class="btn" type="submit">Submit Application</button>
+            <button type="button" class="btn ghost" onclick="saveDraft()">Save Draft</button>
+            <button type="button" class="btn ghost" onclick="clearForm()">Clear</button>
+          </div>
+
+          <p id="form-msg" class="muted small"></p>
+        </form>
+      </div>
+
+      <div style="margin-top:12px" class="card">
+        <h4>Recent submissions</h4>
+        <div id="recent-submissions">No submissions yet.</div>
+      </div>
+    </section>
+
+    <!-- ABOUT -->
+    <section id="page-about" class="page" style="display:none">
+      <div class="card">
+        <h2>About Us</h2>
+        <p class="muted">Akhuwat University — Kasur campus offers degree programs with focus on hospitality, tourism and applied arts. We provide industry-aligned training and community support.</p>
+      </div>
+    </section>
+
+    <!-- CONTACT -->
+    <section id="page-contact" class="page" style="display:none">
+      <div class="card">
+        <h2>Contact Us</h2>
+        <p class="muted">Phone: 03365086000<br>Email: admissions@akhuwat.edu.pk<br>Address: Akhuwat University — Kasur Campus</p>
+      </div>
+    </section>
+
+  </main>
+
+  <footer>
+    © Akhuwat University — Kasur • Smart Admissions
+  </footer>
+
+  <script>
+    /* ---------------- CONFIG ----------------
+     * Replace IMAGE_URL with a direct link to the image you choose from Google or your hosted image.
+     * Example: const IMAGE_URL = 'https://yourdomain.com/images/akhuwat.jpg'
+     * If you prefer hosting on GitHub Pages, upload the image to the same repo and use that URL.
+     * For Google Sheet submission: create a Google Apps Script web app and paste its URL into GOOGLE_SCRIPT_ENDPOINT.
+     * For server submission: set SERVER_ENDPOINT to your backend POST URL.
+    */
+    const IMAGE_URL = "https://www.akhuwatuniversity.edu.pk/wp-content/uploads/2023/03/campus-building.jpg";
+
+    const IMAGE_URL = "https://via.placeholder.com/1200x500?text=Akhuwat+University";
+
+    const SERVER_ENDPOINT = ''; // e.g. https://yourserver.com/submit
+    const GOOGLE_SCRIPT_ENDPOINT = ''; // e.g. https://script.google.com/macros/s/.../exec
+
+    // --- Navigation ---
+    const pages = ['home','admission','about','contact'];
+    function showPage(page){
+      pages.forEach(p=>{
+        const el = document.getElementById('page-'+p);
+        if(el) el.style.display = (p===page? 'block':'none');
+      });
+      document.querySelectorAll('#nav-links a').forEach(a=>a.classList.toggle('active', a.dataset.page===page));
+      location.hash = page;
+      if(page==='home') renderSavedList();
+      if(page==='admission') renderRecent();
+    }
+    document.querySelectorAll('#nav-links a').forEach(a=>a.addEventListener('click', e=>{ e.preventDefault(); showPage(a.dataset.page); }));
+    window.addEventListener('load', ()=>{ const p = (location.hash||'#home').replace('#','') || 'home'; showPage(p); applyHeroImage(); loadDraftToForm(); });
+
+    function navigate(p){ showPage(p); }
+
+    // Theme toggle
+    const root = document.getElementById('page-root');
+    const themeBtn = document.getElementById('theme-toggle');
+    themeBtn.addEventListener('click', ()=>{
+      root.classList.toggle('dark');
+      themeBtn.textContent = root.classList.contains('dark') ? 'Light' : 'Dark';
+    });
+
+    function applyHeroImage(){ const el = document.getElementById('hero-img'); const brand = document.getElementById('brand-img');
+      const url = IMAGE_URL || 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=1400&auto=format&fit=crop&ixlib=rb-4.0.3&s=1a9d3b7c0d3d1ce8b2d9c0a5f7b3e6d1';
+      el.style.backgroundImage = `url(${url})`;
+      brand.src = BRAND_IMG || url;
+    }
+
+    /* ---------------- Storage helpers ---------------- */
+    const STORAGE_KEY = 'akhuwat_admissions_v2';
+    function loadEntries(){ try{ return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }catch(e){ return []; } }
+    function saveEntries(arr){ localStorage.setItem(STORAGE_KEY, JSON.stringify(arr)); }
+
+    /* ---------------- Form handlers ---------------- */
+    const form = document.getElementById('admission-form');
+    form.addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const data = getFormData();
+      // Basic validation
+      if(!data.name || !data.cnic || !data.program || !data.phone){ showMessage('Please fill required fields.'); return; }
+      data.id = Date.now(); data.submittedAt = new Date().toISOString();
+      const entries = loadEntries(); entries.unshift(data); saveEntries(entries); renderRecent(); showMessage('Saved locally.');
+
+      // Try Google Script submission first (if provided)
+      if(GOOGLE_SCRIPT_ENDPOINT){
+        try{ const resp = await fetch(GOOGLE_SCRIPT_ENDPOINT, { method:'POST', body: JSON.stringify(data), headers:{'Content-Type':'application/json'} }); if(resp.ok) showMessage('Submitted to Google Sheet.'); }
+        catch(err){ showMessage('Saved locally; Google submission failed.'); }
+      }
+
+      // Try server endpoint
+      if(SERVER_ENDPOINT){
+        try{ const res = await fetch(SERVER_ENDPOINT, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)} ); if(res.ok) showMessage('Submitted to server.'); else showMessage('Saved locally; server responded with error.'); }
+        catch(err){ showMessage('Saved locally; server submission failed.'); }
+      }
+
+      form.reset();
+    });
+
+    function getFormData(){ return {
+      name: document.getElementById('name').value.trim(),
+      cnic: document.getElementById('cnic').value.trim(),
+      program: document.getElementById('program').value,
+      email: document.getElementById('email').value.trim(),
+      phone: document.getElementById('phone').value.trim(),
+      address: document.getElementById('address').value.trim(),
+      notes: document.getElementById('notes').value.trim()
+    } }
+
+    function saveDraft(){ const d = getFormData(); localStorage.setItem('akhuwat_draft_v2', JSON.stringify(d)); showMessage('Draft saved in browser.'); }
+    function loadDraftToForm(){ const draft = localStorage.getItem('akhuwat_draft_v2'); if(draft){ try{ const d = JSON.parse(draft); document.getElementById('name').value = d.name||''; document.getElementById('cnic').value = d.cnic||''; document.getElementById('program').value = d.program||''; document.getElementById('email').value = d.email||''; document.getElementById('phone').value = d.phone||''; document.getElementById('address').value = d.address||''; document.getElementById('notes').value = d.notes||'';}catch(e){} } }
+    function clearForm(){ form.reset(); showMessage('Form cleared.'); }
+    function showMessage(txt){ const el = document.getElementById('form-msg'); el.textContent = txt; setTimeout(()=>{ if(el.textContent===txt) el.textContent=''; },4000); }
+
+    /* ---------------- Render saved list and recent ---------------- */
+    function renderSavedList(){ const listEl = document.getElementById('saved-list'); const entries = loadEntries(); if(!entries.length){ listEl.innerHTML = '<div class="muted">No saved entries yet.</div>'; return; }
+      const rows = entries.slice(0,6).map(e=>`<div style="padding:8px 0;border-bottom:1px solid #f3f7fb"><strong>${escapeHtml(e.name)}</strong><div class="muted">${escapeHtml(e.program)} • ${escapeHtml(e.cnic)}</div></div>`).join(''); listEl.innerHTML = rows; }
+
+    function renderRecent(){ const el = document.getElementById('recent-submissions'); const entries = loadEntries(); if(!entries.length){ el.innerHTML = '<div class="muted">No submissions yet.</div>'; return; }
+      const html = '<table><thead><tr><th>Name</th><th>Program</th><th>Phone</th><th>When</th></tr></thead><tbody>'+ entries.slice(0,8).map(r=>`<tr><td>${escapeHtml(r.name)}</td><td>${escapeHtml(r.program)}</td><td>${escapeHtml(r.phone)}</td><td>${new Date(r.submittedAt).toLocaleString()}</td></tr>`).join('') +'</tbody></table>';
+      el.innerHTML = html; renderSavedList(); }
+
+    /* ---------------- CSV export ---------------- */
+    function exportCSV(){ const entries = loadEntries(); if(!entries.length){ alert('No entries to export'); return; }
+      const headers = ['id','name','cnic','program','email','phone','address','notes','submittedAt'];
+      const rows = entries.map(e=>headers.map(h=>`"${(e[h]||'').toString().replace(/"/g,'""')}"`).join(','));
+      const csv = [headers.join(','), ...rows].join('\n');
+      const blob = new Blob([csv], {type:'text/csv'});
+      const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'akhuwat_admissions.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+    }
+
+    /* ---------------- small helpers ---------------- */
+    function escapeHtml(str){ if(!str) return ''; return str.replace(/[&<>\"']/g, (c)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"})[c]); }
+
+    // expose to console
+    window.exportCSV = exportCSV; window.navigate = navigate; window.saveDraft = saveDraft; window.clearForm = clearForm;
+  </script>
+</body>
+</html>
